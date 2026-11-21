@@ -489,7 +489,7 @@ function pickR(i){
 function weakest(){const w=[...C].sort((a,b)=>S.m[a.id]-S.m[b.id])[0],root=c=>{const p=c.p.filter(q=>S.m[q]<.6).sort((a,b)=>S.m[a]-S.m[b])[0];return p?root(B(p)):c};return{t:root(w),w}}
 function nextRoom(){const{t}=weakest();startQ(t.id,diff(S.m[t.id]),'room')}
 function practice(c){startQ(c,diff(S.m[c]),'room');V=5;draw();scrollTo(0,0)}
-function go(n){if(S.role==='teacher'&&n!==1)n=7;V=n;if(n==3){DX=0;startQ(C[0].id,2,'dx')}if(n==5)nextRoom();if(n==7){T.sel=-1;if(typeof fetchTeacherClassData==='function')fetchTeacherClassData(S.k);}draw();scrollTo(0,0)}
+function go(n){if(S.role==='teacher'&&n!==1&&n!==9)n=7;V=n;if(n===9){FC_CLASS=S.k||6;}if(n==3){DX=0;startQ(C[0].id,2,'dx')}if(n==5)nextRoom();if(n==7){T.sel=-1;if(typeof fetchTeacherClassData==='function')fetchTeacherClassData(S.k);}draw();scrollTo(0,0)}
 async function login(){
   const nm=$('#nm').value.trim()||(S.role=='student'?'Student':'Teacher');
   const em=($('#em')?.value||'').trim();
@@ -688,6 +688,100 @@ function getStudentsForClass(k){
   }
   return list;
 }
+
+let FC_CLASS = 6;
+let FC_SUBJ = 'Mathematics';
+let FC_SEARCH = '';
+
+function getSyllabusTree(k) {
+  if (typeof window !== 'undefined' && window.NCERT_SYLLABUS && window.NCERT_SYLLABUS[k]) {
+    return window.NCERT_SYLLABUS[k];
+  }
+  return null;
+}
+
+function renderFlowchartView() {
+  const syl = getSyllabusTree(FC_CLASS) || (typeof window !== 'undefined' && window.NCERT_SYLLABUS ? window.NCERT_SYLLABUS[6] : null);
+  if (!syl) {
+    return `<div class="card"><h2>NCERT Syllabus Flowcharts</h2><p class="sub">Loading syllabus data...</p></div>`;
+  }
+  const subjects = syl.subjects || [];
+  if (!subjects.some(s => s.name === FC_SUBJ) && subjects.length) {
+    FC_SUBJ = subjects[0].name;
+  }
+  const curSubject = subjects.find(s => s.name === FC_SUBJ) || subjects[0];
+  const q = FC_SEARCH.trim().toLowerCase();
+
+  const filteredChapters = (curSubject?.children || []).filter(ch => {
+    if (!q) return true;
+    if (ch.title.toLowerCase().includes(q)) return true;
+    return (ch.children || []).some(t => t.title.toLowerCase().includes(q));
+  });
+
+  const totalTopics = (curSubject?.children || []).reduce((acc, ch) => acc + (ch.children?.length || 0), 0);
+
+  return `
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+      <div>
+        <h2 style="margin:0">NCERT Syllabus Flowchart · Class ${FC_CLASS}</h2>
+        <p class="sub" style="margin:4px 0 0">Interactive chapter & prerequisite topic tree for Class ${FC_CLASS} (${syl.board || 'NCERT'})</p>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <label style="margin:0;font-size:0.85rem">Class:
+          <select onchange="FC_CLASS=+this.value;draw()" style="padding:4px 10px;border-radius:10px;border:1px solid rgba(167,139,250,0.4);background:#fff;font-weight:600">
+            ${[1,2,3,4,5,6,7,8,9,10].map(k => `<option value="${k}" ${k===FC_CLASS?'selected':''}>Class ${k}</option>`).join('')}
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px">
+      <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px">
+        ${subjects.map(s => `
+          <button class="btn ${s.name===FC_SUBJ?'':'off'}" onclick="FC_SUBJ='${esc(s.name)}';draw()" style="white-space:nowrap;padding:6px 14px">
+            ${esc(s.name)}
+          </button>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+        <div>
+          <h3 style="margin:0;color:#7b57b0">📚 ${esc(curSubject?.name || FC_SUBJ)}</h3>
+          <small class="sub">${(curSubject?.children || []).length} Chapters · ${totalTopics} Core Topics</small>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="text" placeholder="Search chapter or topic..." value="${esc(FC_SEARCH)}" oninput="FC_SEARCH=this.value;draw()" style="padding:6px 12px;border-radius:14px;border:1px solid #d3c6f3;font-size:0.85rem;min-width:200px">
+          <button class="btn alt" style="padding:5px 12px;font-size:0.8rem" onclick="const ds=document.querySelectorAll('.fc-details');const allOpen=[...ds].every(d=>d.open);ds.forEach(d=>d.open=!allOpen)">
+            Toggle All
+          </button>
+        </div>
+      </div>
+
+      <div class="flowchart-container">
+        ${filteredChapters.length ? filteredChapters.map((ch, idx) => `
+          <details class="fc-details syllabus-node" open style="margin-bottom:12px;border:1px solid rgba(167,139,250,0.25);border-radius:12px;padding:8px 12px;background:rgba(255,255,255,0.7)">
+            <summary style="cursor:pointer;font-weight:600;font-size:0.95rem;color:#4c2882;display:flex;align-items:center;gap:8px">
+              <span class="pill" style="font-size:0.75rem;padding:2px 8px">Ch ${idx+1}</span>
+              <span>${esc(ch.title)}</span>
+              <small class="sub" style="margin-left:auto;font-weight:normal">(${ch.children?.length || 0} topics)</small>
+            </summary>
+            <div class="syllabus-branch" style="margin:10px 0 6px 14px;border-left:2px solid #a78bfa;padding-left:14px;display:flex;flex-wrap:wrap;gap:8px">
+              ${(ch.children || []).map(t => `
+                <div class="syllabus-leaf" style="background:#f4eeff;border:1px solid #dcd0f7;padding:5px 12px;border-radius:8px;font-size:0.85rem;color:#3b1c6e;display:flex;align-items:center;gap:6px">
+                  <span style="color:#7b57b0;font-weight:700">●</span>
+                  <span>${esc(t.title)}</span>
+                </div>
+              `).join('')}
+            </div>
+          </details>
+        `).join('') : `<p class="sub" style="text-align:center;padding:20px">No chapters or topics matching "${esc(FC_SEARCH)}".</p>`}
+      </div>
+    </div>
+  `;
+}
+
 const V_=[
 ()=>`<div class="g2"><div><span class="pill">AI-POWERED LEARNING PLATFORM · NCERT SYLLABUS</span><h1 style="margin-top:16px">Unlock your potential with AI-powered learning</h1><p class="sub">Full NCERT Mathematics syllabus for Classes 1 to 10. EduSpark finds the exact concept you're stuck on, from your reasoning, and builds adaptive practice around it.</p>
 <div class="card" style="max-width:430px"><div class="row"><button class="btn ${S.role=='student'?'':'off'}" onclick="S.role='student';draw()">Student</button><button class="btn ${S.role=='teacher'?'':'off'}" onclick="S.role='teacher';draw()">Teacher</button></div>
@@ -705,7 +799,7 @@ return`<div class="top"><h2 class="hi">Good ${g}, ${S.name}!</h2><div class="too
 <div class="card act" style="background:linear-gradient(145deg,#fff0d9,#f1e2ff 55%,#d9f2ff)"><h3>Study activity <span class="pill" style="float:right">Mastery trend</span></h3><svg viewBox="0 0 400 150" width="100%" role="img" aria-label="Mastery trend">${[0,.5,1].map(v=>`<line x1="10" x2="390" y1="${Y(v)}" y2="${Y(v)}" stroke="#c4b2ee" stroke-dasharray="3 4"/><text class="dk" x="0" y="${Y(v)-3}" font-size="8">${v*100}%</text>`).join('')}${n>0?`<defs><linearGradient id="lg" x1="0" x2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset=".5" stop-color="#8b5cf6"/><stop offset="1" stop-color="#ec4899"/></linearGradient><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a78bfa" stop-opacity=".5"/><stop offset="1" stop-color="#a78bfa" stop-opacity="0"/></linearGradient></defs><path d="${d} L${X(n)} 130 L${X(0)} 130 Z" fill="url(#ag)"/><path d="${d}" fill="none" stroke="url(#lg)" stroke-width="4" stroke-linecap="round"/>${L.map((v,i)=>`<circle cx="${X(i)}" cy="${Y(v)}" r="4.5" fill="#fff" stroke="${col(v)}" stroke-width="3"/>`).join('')}`:`<text class="dk" x="200" y="80" text-anchor="middle" font-size="11">Answer questions to see your trend</text>`}</svg></div>
 <div class="card ach"><h3>Achievements</h3>${bd.map(([k,v])=>`<span class="chip ${v?'':'lock'}">${v?'★':'🔒'} ${k}</span>`).join('')}</div>
 <div class="card pop"><h3>Misconceptions to fix</h3>${mis.length?mis.map(([k,v])=>`<div class="hwi" style="cursor:default"><span>${M[k][0]}<small>${v}× · ${M[k][1]}</small></span></div>`).join(''):'<p class="sub">None yet. Take the diagnostic to find them.</p>'}</div>
-<div class="card map"><h3>Class schedule</h3>${calBoard()}<button class="btn alt" style="margin-top:10px" onclick="go(8)">Open full calendar</button></div><div class="card map"><h3>Class ${S.k} NCERT concept map</h3>${graph()}</div></div>`},
+<div class="card map"><h3>Class schedule</h3>${calBoard()}<button class="btn alt" style="margin-top:10px" onclick="go(8)">Open full calendar</button></div><div class="card map"><h3>Class ${S.k} NCERT concept map</h3>${graph()}<button class="btn alt" style="margin-top:10px" onclick="go(9)">Explore NCERT Syllabus Flowcharts ›</button></div></div>`},
 ()=>`<h2>Diagnostic: question ${Math.min(DX+1,C.length)} of ${C.length}</h2><div class="bar" style="margin-bottom:14px"><i style="width:${DX/C.length*100}%;background:var(--acc)"></i></div>${quiz()}`,
 ()=>!S.done?`<div class="card"><h2>Take the diagnostic first</h2><p class="sub">Your analysis appears after a few short questions.</p><button class="btn" onclick="go(3)">Take the diagnostic</button></div>`:`<h2>Your learning analysis</h2><div class="g2"><div class="card"><h3>Mastery by concept</h3>${bars()}</div><div class="card"><h3>Concept map</h3>${graph()}</div></div>
 <div class="card"><h3>Misconceptions found in your reasoning</h3>${Object.keys(S.mis).length?Object.entries(S.mis).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="warn"><b>${M[k][0]}</b> (${v}×)<br>${M[k][1]}</div>`).join(''):'<p class="sub">None detected.</p>'}<button class="btn" onclick="go(2)">Back to dashboard</button></div><div class="card"><h3>How each answer was read</h3>${(S.ml||[]).slice(-12).reverse().map(e=>`<div class="row"><span>${N[e.c]}</span><span style="flex:1;font-size:.85rem">Answer: <b style="color:${e.a?'var(--bad)':'var(--good)'}"}>${e.a?'wrong':'right'}</b> · Reasoning: <b style="color:${e.r?'var(--bad)':'var(--good)'}}">${e.r?'flawed':'sound'}</b></span><span class="pill">${e.r&&!e.a?'caught only by reasoning':e.r?'reasoning confirms it':e.a?'answer slip only':'clean'}</span></div>`).join('')}</div>`,
@@ -1060,9 +1154,9 @@ return`<div class="top"><h2 class="hi">Good ${g}, ${S.name}!</h2><div class="too
     ${calEdit()}
   </div>`;
 },()=>calV()];
-function draw(){const sd=S.role=='student',it=sd?[['Dashboard',2],['Diagnostic',3],['Analysis',4],['Learning room',5],['Progress',6],['Calendar',8]]:[['Teacher view',7]],lv=1+Math.floor((S.done?avg():0)*9);
+function draw(){const sd=S.role=='student',it=sd?[['Dashboard',2],['Diagnostic',3],['Analysis',4],['Learning room',5],['Progress',6],['NCERT Flowcharts',9],['Calendar',8]]:[['Teacher view',7],['NCERT Flowcharts',9]],lv=1+Math.floor((S.done?avg():0)*9);
  if(V==1){$('#app').innerHTML=`<div class="login"><span class="logo">EduSpark.</span>${V_[0]()}</div>`;return}
- const pl=sd?[['Learn',2,'🎓'],['Practice',5,'🧠'],['Progress',6,'📈'],['Calendar',8,'📅'],['Exit',1,'↩']]:[['Teacher view',7,'📊'],['Exit',1,'↩']];
+ const pl=sd?[['Learn',2,'🎓'],['Practice',5,'🧠'],['Flowcharts',9,'🌳'],['Progress',6,'📈'],['Calendar',8,'📅'],['Exit',1,'↩']]:[['Teacher view',7,'📊'],['Flowcharts',9,'🌳'],['Exit',1,'↩']];
  $('#app').innerHTML=`<div class="shell"><aside><span class="logo">EduSpark.</span><div class="prof"><div class="av">${(S.name[0]||'S').toUpperCase()}</div><b>${S.name}</b><small>${sd?`Class ${S.k} · Lvl ${lv}`:'Teacher'}</small></div>${it.map(([n,i])=>`<button class="${V==i?'on':''}" onclick="go(${i})">${n}</button>`).join('')}<button class="out" onclick="go(1)">Log out</button></aside><section class="content">${V_[V-1]()}</section></div><div class="pillnav">${pl.map(([n,i,e])=>`<button class="${V==i?'on':''}" onclick="go(${i})"><span>${e}</span>${n}</button>`).join('')}</div>`}
 
 // Shared class calendar (teacher edits, students read). Wired to SQLite database API.

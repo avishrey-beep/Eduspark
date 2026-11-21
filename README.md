@@ -5,6 +5,14 @@ EduSpark is an intelligent, full-stack adaptive learning platform designed for I
 
 ---
 
+
+## 🌐 Live Website
+
+Access the fully functional EduSpark platform on GitHub Pages:
+**👉 [https://avishrey-beep.github.io/Eduspark/](https://avishrey-beep.github.io/Eduspark/)**
+
+---
+
 ## 🌟 Key Features
 
 - **Concept Mastery Engine:** Full NCERT Mathematics coverage for Classes 1 to 10 with prerequisite tracking and Spaced Repetition (SuperMemo SM-2 inspired).
