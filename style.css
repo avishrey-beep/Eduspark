@@ -78,3 +78,19 @@ svg text{fill:#fff;font-family:Poppins,sans-serif}svg text.dk{fill:var(--sub)}
   border-radius: 4px;
   display: inline-block;
 }
+
+/* Clickable concept map & flowchart styles */
+svg g[onclick] {
+  cursor: pointer;
+}
+svg g[onclick]:hover rect {
+  stroke: #ffffff;
+  stroke-width: 2.5px;
+  filter: drop-shadow(0 4px 12px rgba(123, 87, 176, 0.45));
+}
+.clickable-topic:hover {
+  background: #e8dcfc !important;
+  border-color: #a78bfa !important;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(123, 87, 176, 0.18);
+}

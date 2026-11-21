@@ -562,7 +562,7 @@ function graph(){
    if(k){
      txt+=`<text x="${c.x}" y="${c.y+(lines.length===1?11:15)}" text-anchor="middle" font-size="8" font-weight="700" style="fill:${colTxt};opacity:.95">★ ${pc(S.m[c.id])}</text>`;
    }
-   n+=`<g><rect x="${c.x-BW/2}" y="${c.y-BH/2}" width="${BW}" height="${BH}" rx="10" fill="${colBg}" opacity=".94" stroke="#ffffff" stroke-width="1.5"/>${txt}</g>`;
+   n+=`<g style="cursor:pointer" onclick="practice('${c.id}')" role="button" tabindex="0"><title>Click to practice ${esc(c.n)}</title><rect x="${c.x-BW/2}" y="${c.y-BH/2}" width="${BW}" height="${BH}" rx="10" fill="${colBg}" opacity=".94" stroke="#ffffff" stroke-width="1.5"/>${txt}</g>`;
  });
  return`<svg viewBox="0 0 ${maxX} ${maxY}" width="100%" role="img" aria-label="Concept graph for Class ${S.k}">${e}${n}</svg>`}
 const bars=()=>[...C].sort((a,b)=>S.m[a.id]-S.m[b.id]).map(c=>`<div class="row"><span>${c.n}</span><div class="bar"><i style="width:${S.m[c.id]*100}%;background:${col(S.m[c.id])}"></i></div><span style="width:40px">${S.t[c.id]?pc(S.m[c.id]):'–'}</span></div>`).join(''),avg=()=>C.reduce((s,c)=>s+S.m[c.id],0)/C.length;
@@ -700,6 +700,25 @@ function getSyllabusTree(k) {
   return null;
 }
 
+
+function practiceTopic(topic, chapter, subject) {
+  if (subject === 'Mathematics') {
+    // Match topic to closest math concept if possible
+    const tLower = topic.toLowerCase();
+    const matched = C.find(c => tLower.includes(c.n.toLowerCase()) || c.n.toLowerCase().includes(tLower));
+    if (matched) {
+      practice(matched.id);
+      return;
+    }
+  }
+  // Otherwise start adaptive practice on weakest concept with contextual toast
+  const { t } = weakest();
+  startQ(t.id, diff(S.m[t.id]), 'room');
+  V = 5;
+  draw();
+  scrollTo(0,0);
+}
+
 function renderFlowchartView() {
   const syl = getSyllabusTree(FC_CLASS) || (typeof window !== 'undefined' && window.NCERT_SYLLABUS ? window.NCERT_SYLLABUS[6] : null);
   if (!syl) {
@@ -769,9 +788,10 @@ function renderFlowchartView() {
             </summary>
             <div class="syllabus-branch" style="margin:10px 0 6px 14px;border-left:2px solid #a78bfa;padding-left:14px;display:flex;flex-wrap:wrap;gap:8px">
               ${(ch.children || []).map(t => `
-                <div class="syllabus-leaf" style="background:#f4eeff;border:1px solid #dcd0f7;padding:5px 12px;border-radius:8px;font-size:0.85rem;color:#3b1c6e;display:flex;align-items:center;gap:6px">
+                <div class="syllabus-leaf clickable-topic" onclick="practiceTopic('${esc(t.title)}','${esc(ch.title)}','${esc(curSubject?.name||FC_SUBJ)}')" style="cursor:pointer;background:#f4eeff;border:1px solid #dcd0f7;padding:5px 12px;border-radius:8px;font-size:0.85rem;color:#3b1c6e;display:flex;align-items:center;gap:6px;transition:all .15s" title="Click to practice this topic">
                   <span style="color:#7b57b0;font-weight:700">●</span>
                   <span>${esc(t.title)}</span>
+                  <small style="opacity:0.7;font-size:0.75rem">✎</small>
                 </div>
               `).join('')}
             </div>
@@ -1153,7 +1173,7 @@ return`<div class="top"><h2 class="hi">Good ${g}, ${S.name}!</h2><div class="too
     ${calBoard()}
     ${calEdit()}
   </div>`;
-},()=>calV()];
+},()=>calV(),()=>renderFlowchartView()];
 function draw(){const sd=S.role=='student',it=sd?[['Dashboard',2],['Diagnostic',3],['Analysis',4],['Learning room',5],['Progress',6],['NCERT Flowcharts',9],['Calendar',8]]:[['Teacher view',7],['NCERT Flowcharts',9]],lv=1+Math.floor((S.done?avg():0)*9);
  if(V==1){$('#app').innerHTML=`<div class="login"><span class="logo">EduSpark.</span>${V_[0]()}</div>`;return}
  const pl=sd?[['Learn',2,'🎓'],['Practice',5,'🧠'],['Flowcharts',9,'🌳'],['Progress',6,'📈'],['Calendar',8,'📅'],['Exit',1,'↩']]:[['Teacher view',7,'📊'],['Flowcharts',9,'🌳'],['Exit',1,'↩']];
