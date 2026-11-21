@@ -62,3 +62,49 @@ async function apiGetStudentDashboard() {
 async function apiGetTeacherOverview(classLevel) {
   return api(`/teacher/classes/${classLevel}/overview`);
 }
+
+// Flowchart syllabus helpers. Fetches the hierarchical syllabus API and renders
+// expandable branches into a container element (pass the container, not a selector).
+async function apiGetSyllabusFlowchart(classLevel, subject = "") {
+  const suffix = subject ? `?subject=${encodeURIComponent(subject)}` : "";
+  return api(`/syllabus/${classLevel}/flowchart${suffix}`);
+}
+
+function renderSyllabusFlowchart(container, syllabusData) {
+  container.replaceChildren();
+  const makeNode = (node, depth = 0) => {
+    const wrapper = document.createElement("section");
+    wrapper.className = `syllabus-node syllabus-depth-${depth}`;
+    const heading = document.createElement(node.children?.length ? "details" : "div");
+    if (heading.tagName === "DETAILS") {
+      heading.open = depth < 2;
+      const summary = document.createElement("summary");
+      summary.textContent = node.title || node.name;
+      heading.append(summary);
+    } else {
+      heading.className = "syllabus-leaf";
+      heading.textContent = node.title || node.name;
+    }
+    wrapper.append(heading);
+    const children = node.children || [];
+    if (children.length) {
+      const branch = document.createElement("div");
+      branch.className = "syllabus-branch";
+      children.forEach(child => branch.append(makeNode(child, depth + 1)));
+      heading.append(branch);
+    }
+    return wrapper;
+  };
+  const title = document.createElement("h2");
+  title.textContent = `Class ${syllabusData.classLevel} — ${syllabusData.board || "Syllabus"}`;
+  container.append(title);
+  (syllabusData.subjects || []).forEach(subject => {
+    const section = document.createElement("section");
+    section.className = "syllabus-subject";
+    const heading = document.createElement("h3");
+    heading.textContent = subject.name;
+    section.append(heading);
+    (subject.children || []).forEach(node => section.append(makeNode(node, 1)));
+    container.append(section);
+  });
+}

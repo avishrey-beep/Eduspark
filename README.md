@@ -19,6 +19,17 @@ EduSpark is an intelligent, full-stack adaptive learning platform designed for I
 
 ---
 
+
+### NCERT-Aligned Syllabus Flowcharts (Classes 1–10)
+The backend provides a structured hierarchical syllabus outline for Classes 1 to 10 across Mathematics, Science, Social Science, English, Hindi, and EVS:
+- `GET /api/syllabus/:classLevel/flowchart` — Retrieves the complete chapter and topic tree for all subjects in that class.
+- `GET /api/syllabus/:classLevel/flowchart?subject=Mathematics` — Filter specifically by subject name or id.
+- Integrated frontend helpers in `frontend-integration.js`:
+  - `apiGetSyllabusFlowchart(classLevel, subject)`
+  - `renderSyllabusFlowchart(container, syllabusData)`
+
+---
+
 ## 🚀 Getting Started
 
 ### Prerequisites

@@ -5,6 +5,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const path = require("path");
 const { DatabaseSync: Database } = require("node:sqlite");
+const { syllabus } = require("./syllabus");
 
 const app = express();
 app.use(cors({ origin: process.env.CLIENT_ORIGIN || true }));
@@ -280,6 +281,21 @@ app.get("/api/me",auth,(req,res)=>{
   const u=db.prepare("SELECT * FROM users WHERE id=?").get(req.auth.id);
   if(!u) return res.status(404).json({error:"Account not found."});
   res.json({user:userPublic(u)});
+});
+
+// Full class/subject/chapter/topic tree for flowchart UIs.
+app.get("/api/syllabus/:classLevel/flowchart",auth,(req,res)=>{
+  const k=+req.params.classLevel;
+  if(!validClass(k)) return res.status(400).json({error:"Class must be 1 to 10."});
+  const data=syllabus[k];
+  if(!data) return res.status(404).json({error:"Syllabus not found for this class."});
+  const subject=String(req.query.subject||"").trim().toLowerCase();
+  if(subject) {
+    const found=data.subjects.find(s=>s.id===subject || s.name.toLowerCase()===subject);
+    if(!found) return res.status(404).json({error:"Subject not found for this class.",availableSubjects:data.subjects.map(s=>s.name)});
+    return res.json({classLevel:k,board:data.board,subjects:[found]});
+  }
+  res.json(data);
 });
 
 app.get("/api/syllabus/:classLevel",auth,(req,res)=>{

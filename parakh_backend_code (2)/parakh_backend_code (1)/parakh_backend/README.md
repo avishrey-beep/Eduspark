@@ -94,3 +94,14 @@ The next integration step is to update `script.js` so:
 - calendar uses `/api/calendar` instead of the `claude.use('db')` preview integration.
 
 Do not deploy with the sample JWT secret. Add HTTPS, rate limiting, validation, account recovery, and teacher/student classroom authorization before production use.
+
+## NCERT-aligned syllabus flowcharts (Classes 1–10)
+
+The backend now exposes a hierarchical syllabus outline for the flowchart UI:
+
+- `GET /api/syllabus/:classLevel/flowchart` — all subjects for a class
+- `GET /api/syllabus/:classLevel/flowchart?subject=Mathematics` — one subject (subject name or id)
+
+Both endpoints require the same Bearer token as the other student endpoints. The response shape is `classLevel -> subjects -> children (chapters) -> children (topics)`. Topic nodes are ready to be extended with subtopics. `frontend-integration.js` includes `apiGetSyllabusFlowchart()` and `renderSyllabusFlowchart(container, data)` for expandable branches.
+
+**Editorial note:** This repository is backend-only; it does not include the Parakh website/app UI. The included content is an NCERT-aligned outline, not a verified exhaustive chapter-by-chapter transcription. NCERT editions and rationalised syllabi change, so confirm the applicable academic-year books before presenting it as the official complete syllabus. The existing `/api/syllabus/:classLevel` learning-concept endpoint remains unchanged.
