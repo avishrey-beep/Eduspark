@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# SQLite databases, journals & locks
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.db
+parakh.sqlite*
+eduspark.sqlite*
+
+# Environment files
+.env
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# System & IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
